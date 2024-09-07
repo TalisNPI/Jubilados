@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Reserva{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h3>Eliminar Reserva</h3>
+    <p>¿Estás seguro de que deseas eliminar la reserva de <strong>{{ reservation.name }}</strong>?</p>
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn-action">Eliminar</button>
+    </form>
+    <button onclick="location.href='{% url 'all_reservations' %}'" class="btn-action">Cancelar</button>
+</div>
+{% endblock %}

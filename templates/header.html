@@ -1,0 +1,21 @@
+{% load static %}
+<meta charset="UTF-8">
+<link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
+
+<header class="site-header">
+    <div class="header-content">
+        <div class="branding">
+            <img src="{% static 'js/images/logo1.png' %}" alt="Bar Jubilados Logo" class="logo">
+        </div>
+        <div class="clock-container">
+            <p id="date"></p>
+            <p id="clock"></p>            
+        </div>
+        {% if user.is_authenticated %}
+        <div class="user-info">
+            <img src="{{ user.avatar.url }}" alt="{{ user.username }}'s avatar" class="user-avatar">
+            <p>Hola, {{ user.username }}!</p>
+        </div>
+        {% endif %}
+    </div>
+</header>

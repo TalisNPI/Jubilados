@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
+
+{% block title %}Compras{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if messages %}
+    <div id="messageModal" class="modal fade" tabindex="-1" role="dialog" data-backdrop="false">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Mensaje</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    {% for message in messages %}
+                        <div class="alert {{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="header-section">
+        <h1 class="page-title">Compras</h1>
+    </div>
+    
+    <!-- Resumen de categorías -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="dashboard-card">
+                <h4>Bebidas</h4>
+                <p>Total artículos: {{ purchases_by_category.beverages|length }}</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="dashboard-card">
+                <h4>Alimentos</h4>
+                <p>Total artículos: {{ purchases_by_category.food|length }}</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="dashboard-card">
+                <h4>Suministros</h4>
+                <p>Total artículos: {{ purchases_by_category.supplies|length }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de botones y barra de búsqueda -->
+    <div class="section-header d-flex justify-content-between align-items-center mb-4">
+        <!-- Contenedor para los botones -->
+        <div class="d-flex">
+            <button class="btn-action me-3" data-bs-toggle="modal" data-bs-target="#addPurchaseModal">
+                <i class="fas fa-plus-circle"></i> Añadir Compra
+            </button>
+            <button class="btn-action me-3" id="generateQrButton">
+                <i class="fas fa-qrcode"></i> Generar Código QR
+            </button>
+            <button class="btn-action me-3" id="viewFullListButton" data-bs-toggle="modal" data-bs-target="#fullListModal">
+                <i class="fas fa-list"></i> Lista de Artículos
+            </button>
+        </div>
+    
+        <!-- Barra de búsqueda global alineada a la derecha -->
+        <form method="get" action="{% url 'all_purchases' %}" class="d-flex ms-auto">
+            <input type="text" name="q" placeholder="Buscar por nombre de artículo" class="form-control me-2">
+            <button type="submit" class="btn-action">Buscar</button>
+        </form>
+    </div>
+
+    <!-- Panel Principal - Últimos 5 artículos por sección -->
+    <div class="row">
+        {% if last_five_purchases %}
+            <div class="col-md-12">
+                <h4>Últimos 5 Artículos Añadidos</h4>
+                <div class="row">
+                    {% for purchase in last_five_purchases %}
+                        <div class="col-md-4 mb-3">
+                            <div class="reservation-item">
+                                <img src="{{ purchase.user.avatar.url }}" alt="{{ purchase.user.username }}'s avatar" class="small-avatar">
+                                <div class="reservation-info">
+                                    <p><i class="fas fa-box"></i>{{ purchase.item_name }}</p>
+                                    <p><i class="fas fa-tag"></i>{{ purchase.get_category_display }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Panel Principal - Lista completa agrupada por categorías -->
+    <div class="row">
+        {% if purchases_by_category %}
+            {% for category, purchases_list in purchases_by_category.items %}
+                <div class="col-md-4">
+                    <div class="reservation-date-group mb-4">
+                        <div class="section-header">
+                            <h4>{{ purchases_list.0.get_category_display }}</h4> <!-- Mostrar el nombre de la categoría en español -->
+                        </div>
+                        <div class="reservation-list">
+                            {% for purchase in purchases_list %}
+                                <div class="reservation-item mb-2">
+                                    <img src="{{ purchase.user.avatar.url }}" alt="{{ purchase.user.username }}'s avatar" class="small-avatar">
+                                    <div class="reservation-info">
+                                        <p><i class="fas fa-box"></i>{{ purchase.item_name }}</p>
+                                    </div>
+                                    
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No hay compras disponibles.</p>
+        {% endif %}
+    </div>
+
+    <button onclick="location.href='{% url 'all_purchases' %}'" class="btn-action">Volver</button>
+</div>
+
+<!-- Modal para mostrar el QR -->
+<div id="qrModal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <span class="close" data-bs-dismiss="modal">&times;</span>
+            <h3>Código QR</h3>
+            <div class="qr-code-container">
+                <img id="qrCodeImage" src="" alt="Código QR generado">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para añadir compra -->
+<div id="addPurchaseModal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <span class="close" data-bs-dismiss="modal">&times;</span>
+            <h3>Añadir Compra</h3>
+            <form method="POST" action="{% url 'add_purchase' %}">
+                {% csrf_token %}
+                {{ purchase_form.as_p }}
+                <button type="submit"><i class="fas fa-plus-circle"></i> <b>Añadir Compra</b></button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para mostrar la lista completa de artículos -->
+<div id="fullListModal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <span class="close" data-bs-dismiss="modal">&times;</span>
+            <h3>Lista Completa de Artículos</h3>
+            <div class="modal-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Artículo</th>
+                            <th>Categoría</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category, purchases_list in purchases_by_category.items %}
+                            {% for purchase in purchases_list %}
+                                <tr>
+                                    <td>{{ purchase.item_name }}</td>
+                                    <td>{{ purchase.get_category_display }}</td>
+                                    <td>
+                                        <a href="{% url 'delete_purchase' purchase.id %}" class="btn-action btn-cancel">
+                                            <i class="fas fa-trash-alt"></i> Eliminar
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- jQuery (necesario para Bootstrap's JavaScript plugins) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Bootstrap JS -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+    // Función para obtener el token CSRF desde las cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+
+    // Manejar la generación del QR y mostrarlo en el modal
+    $('#generateQrButton').on('click', function() {
+        $.ajax({
+            type: "POST",
+            url: "{% url 'generate_qr_code' %}",
+            headers: {'X-CSRFToken': csrftoken},
+            success: function(data) {
+                if (data.qr_code_image_url) {
+                    $('#qrCodeImage').attr('src', data.qr_code_image_url);
+                    $('#qrModal').modal('show');
+                } else {
+                    alert('Error al generar el código QR.');
+                }
+            },
+            error: function() {
+                alert('Error al generar el código QR.');
+            }
+        });
+    });
+</script>
+
+{% endblock %}

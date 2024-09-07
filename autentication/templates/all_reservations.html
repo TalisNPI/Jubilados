@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
+
+{% block title %}Reservas{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if messages %}
+    <div id="messageModal" class="modal fade" tabindex="-1" role="dialog" data-backdrop="false">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Mensaje</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    {% for message in messages %}
+                        <div class="alert {{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    <div class="header-section">
+        <h1 class="page-title">Reservas</h1>
+    </div>
+    <div class="section-header">
+        <button class="btn-action" data-bs-toggle="modal" data-bs-target="#reservationModal">
+            <i class="fas fa-plus-circle"></i> Añadir Reserva
+        </button>
+    </div>
+    <div class="main-content">
+        <!-- Contenedor principal con el calendario a la izquierda, ocupación del bar debajo y las secciones adicionales a la derecha -->
+        <div class="top-section">
+            <div class="left-side">
+                <!-- Calendario para visualizar las reservas -->
+                <div id="calendar-container">
+                    <div id="calendar"></div>
+                </div>
+                <!-- Nueva Sección de Ocupación del Bar -->
+                <div class="bar-occupation-section">
+                    <h2>Ocupación del Bar</h2>
+                    <div class="dashboard-card">
+                        <p><strong>Total Comensales:</strong> {{ total_comensales }}</p>
+                        <p><strong>Mesas Reservadas:</strong> {{ mesas_reservadas }}</p>
+                        <p><strong>Ocupación del Bar:</strong> {{ total_comensales }} / {{ capacidad_total }}</p>
+                        <div class="progress-bar">
+                            <div class="progress 
+                                {% if porcentaje_ocupacion > 100 %}danger{% elif porcentaje_ocupacion > 80 %}warning{% else %}normal{% endif %}"
+                                style="width: {{ porcentaje_ocupacion }}%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Secciones adicionales (Notas, etc.) -->
+            <div class="side-section">
+                <div class="notes-section">
+                    <h2>Notas:</h2>
+                    {% if grouped_notes %}
+                        {% for date, notes in grouped_notes.items %}
+                            <h4>{{ date }}</h4>
+                            <ul>
+                                {% for note_data in notes %}
+                                    <li>
+                                        <i class="fas fa-user user-icon"></i> <strong>{{ note_data.name }}</strong>
+                                        <p>{{ note_data.note }}</p>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endfor %}
+                    {% else %}
+                        <p>No hay notas disponibles.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenedor para la lista de reservas recientes ocupando todo el ancho -->
+        <div class="reservation-list-container">
+            {% for date, reservations_list in grouped_reservations.items %}
+                <div class="reservation-date-group">
+                    <div class="section-header">
+                        <h4>{{ date }}</h4>
+                        <form method="get" action="{% url 'all_reservations' %}" class="search-form">
+                            <input type="text" name="q" placeholder="Buscar por nombre de cliente">
+                            <button type="submit" class="btn-action">Buscar</button>
+                        </form>
+                    </div>
+                    <div class="reservation-list">
+                        {% for reservation in reservations_list %}
+                            <div class="reservation-item">
+                                <img src="{{ reservation.user.avatar.url }}" alt="{{ reservation.user.username }}'s avatar" class="small-avatar">
+                                <div class="reservation-info">
+                                    <p><i class="fas fa-user"></i>{{ reservation.name }}</p>
+                                    <p><i class="fas fa-phone"></i>{{ reservation.phone }}</p>
+                                    <p><i class="fas fa-users"></i>{{ reservation.guests }}</p>
+                                </div>
+                                <div class="reservation-actions">
+                                    <a href="{% url 'edit_reservation' reservation.id %}" class="btn-action">
+                                        <i class="fas fa-edit"></i> Editar
+                                    </a>
+                                    <a href="{% url 'delete_reservation' reservation.id %}" class="btn-action btn-cancel">
+                                        <i class="fas fa-trash-alt"></i> Eliminar
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <button onclick="location.href='{% url 'all_reservations' %}'" class="btn-action">Volver</button>
+</div>
+
+<!-- Modal para añadir reserva -->
+<div id="reservationModal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <span class="close" data-bs-dismiss="modal">&times;</span>
+            <h3>Añadir Reserva</h3>
+            <form method="POST" action="{% url 'add_reservation' %}">
+                {% csrf_token %}
+                {{ reservation_form.as_p }}
+                <button type="submit"><i class="fas fa-plus-circle"></i> <b>Añadir Reserva</b></button>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- jQuery (necesario para Bootstrap's JavaScript plugins) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Bootstrap JS -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<!-- Incluir FullCalendar JS -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.4/index.global.min.js"></script>
+
+<!-- Script para inicializar el calendario -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridWeek',  // Cambia la vista inicial a la semana actual
+            locale: 'es',
+            firstDay: 1,  // Inicia la semana en lunes
+            height: 'auto',  // Ajusta la altura automáticamente
+            contentHeight: 'auto',
+            events: '/api/get_reservations/',  // URL de la API que hemos creado
+            eventContent: function(arg) {
+                return { html: `<div><strong>${arg.event.title}</strong></div>` };
+            },
+            eventDidMount: function(info) {
+                info.el.style.backgroundColor = '#E74C3C';
+                info.el.style.borderColor = '#E74C3C';
+                info.el.style.color = '#ECECEC';
+            }
+        });
+
+        calendar.render();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Añadir Reserva{% endblock %}
+
+{% block content %}
+<h2>Añadir Reserva</h2>
+<form method="post" novalidate>
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="{{ form.name.id_for_label }}">Nombre:</label>
+        {{ form.name }}
+    </div>
+    <div class="mb-3">
+        <label for="{{ form.phone.id_for_label }}">Teléfono:</label>
+        {{ form.phone }}
+    </div>
+    <div class="mb-3">
+        <label for="{{ form.guests.id_for_label }}">Comensales:</label>
+        {{ form.guests }}
+    </div>
+    <div class="mb-3">
+        <label for="{{ form.date.id_for_label }}">Fecha:</label>
+        {{ form.date }}
+    </div>
+    <button type="submit" class="btn btn-primary">Añadir</button>
+</form>
+{% endblock %}

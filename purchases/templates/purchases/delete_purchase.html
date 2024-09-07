@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Compra{% endblock %}
+
+{% block content %}
+<div class="edit-reservation-container">
+    <h3>¿Estás seguro de que deseas eliminar esta compra?</h3>
+    <p><strong>Artículo:</strong> {{ purchase.item_name }}</p>
+    <p><strong>Cantidad:</strong> {{ purchase.quantity }}</p>
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn-action"><i class="fas fa-trash-alt"></i> Eliminar</button>
+        <button type="button" class="btn-action cancel" onclick="location.href='{% url 'all_purchases' %}'">Cancelar</button>
+    </form>
+</div>
+{% endblock %}

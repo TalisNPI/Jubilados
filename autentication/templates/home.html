@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
+
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if messages %}
+    <div id="messageModal" class="modal show" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Mensaje</h5>
+                    <button type="button" class="close" onclick="closeModal('messageModal')" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    {% for message in messages %}
+                        <div class="alert {{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="closeModal('messageModal')">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Dashboard Summary -->
+    <div class="dashboard-summary">
+        <div class="weather-card">
+            <div class="week-weather">
+                {% if weather_info %}
+                    {% for day in weather_info %}
+                        <div class="day-weather">
+                            <h5>{{ day.day_name }}</h5>
+                            <p>{{ day.temperature_max }}°C</p>
+                            <span class="weather-icon">{{ day.weather_icon }}</span>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No se pudo obtener la información meteorológica.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Otras tarjetas del dashboard -->
+        <div class="dashboard-card">
+            <h4>Total Comensales</h4>
+            <p>{{ total_comensales }}</p>
+        </div>
+        <div class="dashboard-card">
+            <h4>Mesas Reservadas</h4>
+            <p>{{ mesas_reservadas }}</p>
+        </div>
+        <div class="dashboard-card">
+            <h4>Ocupación del Bar</h4>
+            <p>{{ total_comensales }} / {{ capacidad_total }}</p>
+            <div class="progress-bar">
+                <div class="progress 
+                    {% if porcentaje_ocupacion > 100 %}danger{% elif porcentaje_ocupacion > 80 %}warning{% else %}normal{% endif %}"
+                    style="width: {{ porcentaje_ocupacion }}%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="content-row">
+            <!-- Reservas -->
+            <div class="reservations">
+                <div class="section-header">
+                    <h3>Últimas Reservas</h3>
+                    <button class="btn-action" onclick="openModal('reservationModal')">
+                        <i class="fas fa-plus-circle"></i> Añadir Reserva
+                    </button>
+                </div>
+                <div class="reservation-list">
+                    {% for date, reservations_list in grouped_reservations.items %}
+                        <div class="reservation-date-group">
+                            <h4>{{ date }}</h4>
+                            {% for reservation in reservations_list %}
+                                <div class="reservation-item">
+                                    <img src="{{ reservation.user.avatar.url }}" alt="{{ reservation.user.username }}'s avatar" class="small-avatar">
+                                    <div class="reservation-info">
+                                        <p><i class="fas fa-user"></i>{{ reservation.name }}</p>
+                                        <p><i class="fas fa-phone"></i>{{ reservation.phone }}</p>
+                                        <p><i class="fas fa-users"></i>{{ reservation.guests }}</p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% empty %}
+                        <p>No hay reservas disponibles.</p>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Compras -->
+            <div class="purchases">
+                <div class="section-header">
+                    <h3>Últimas Compras</h3>
+                    <button class="btn-action" onclick="openModal('purchaseModal')">
+                        <i class="fas fa-plus-circle"></i> Añadir Compra
+                    </button>
+                </div>
+                <div class="purchase-list">
+                    {% if purchases %}
+                        {% for purchase in purchases %}
+                            <div class="purchase-item">
+                                {% if purchase.user.avatar.url %}
+                                    <img src="{{ purchase.user.avatar.url }}" alt="{{ purchase.user.username }}'s avatar" class="small-avatar">
+                                {% endif %}
+                                <div class="purchase-info">
+                                    <p><i class="fas fa-box"></i>{{ purchase.item_name }}</p>
+                                    <p><i class="fas fa-cart-plus"></i>{{ purchase.quantity }}</p>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>No hay compras disponibles.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="reservationModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('reservationModal')">&times;</span>
+            <h3>Añadir Reserva</h3>
+            <form method="POST" action="{% url 'add_reservation' %}">
+                {% csrf_token %}
+                {{ reservation_form.as_p }}
+                <button type="submit"><i class="fas fa-plus-circle"></i> <b>Añadir Reserva</b></button>
+            </form>
+        </div>
+    </div>
+
+    <div id="purchaseModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('purchaseModal')">&times;</span>
+            <h3>Añadir Compra</h3>
+            <form method="POST" action="{% url 'add_purchase' %}">
+                {% csrf_token %}
+                <label for="item_name">Artículo:</label>
+                {{ purchase_form.item_name }}
+
+                <label for="quantity">Cantidad:</label>
+                {{ purchase_form.quantity }}
+
+                <label for="category">Categoría:</label>
+                {{ purchase_form.category }}
+
+                <button type="submit"><i class="fas fa-plus-circle"></i> <b>Añadir Compra</b></button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openModal(modalId) {
+            var modal = document.getElementById(modalId);
+            modal.style.display = "block";
+            document.body.style.overflow = "hidden"; // Desactiva el scroll del body mientras el modal está abierto
+        }
+
+        function closeModal(modalId) {
+            var modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = "none";
+                document.body.style.overflow = "auto"; // Rehabilita el scroll del body
+            }
+        }
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var messageModal = document.getElementById('messageModal');
+            if (messageModal) {
+                messageModal.style.display = "block";
+                document.body.style.overflow = "hidden"; // Desactiva el scroll del body mientras el modal está abierto
+            }
+        });
+    </script>
+{% endblock %}

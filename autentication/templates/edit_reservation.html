@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}Editar Reserva{% endblock %}
+
+{% block content %}
+<div class="edit-reservation-container">
+    <h3>Editar Reserva</h3>
+    <form method="POST" action="{% url 'edit_reservation' reservation.id %}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="form-actions">
+            <button type="submit" class="btn-action"><i class="fas fa-save"></i> Guardar Cambios</button>
+            <button type="button" class="btn-action cancel" onclick="location.href='{% url 'all_reservations' %}'"><i class="fas fa-times"></i> Cancelar</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
