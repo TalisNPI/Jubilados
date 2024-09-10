@@ -5,17 +5,17 @@ from .forms import CustomUserCreationForm, ReservationForm
 from .models import Reservation
 from purchases.models import Purchase
 from purchases.forms import PurchaseForm
-from django.db.models import Sum, Count
+from django.db.models import Sum
 from datetime import datetime, timedelta
 from itertools import groupby
 from operator import attrgetter
 import requests
 from django.contrib import messages
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
 from django.views.decorators.http import require_GET
 from django.utils.timezone import localdate
-from django.http import HttpResponseRedirect
+from django.contrib.auth.decorators import login_required
 
 
 def login_view(request):
@@ -46,7 +46,7 @@ def register(request):
         form = CustomUserCreationForm()
     return render(request, 'register.html', {'form': form}) 
 
-
+@login_required
 def home_view(request):
     # Formularios
     reservation_form = ReservationForm()
@@ -75,20 +75,19 @@ def home_view(request):
     # Obtener los datos meteorológicos de Turis (aprox. latitud y longitud)
     weather_info = get_weather_data(latitude=39.3667, longitude=-0.6833)
 
-    
     return render(request, 'home.html', {
         'grouped_reservations': grouped_reservations,
         'purchases': purchases,
         'reservation_form': reservation_form,
         'purchase_form': purchase_form,
-        'total_comensales': total_comensales,  # Agregar total_comensales al contexto
-        'mesas_reservadas': mesas_reservadas,  # Agregar mesas_reservadas al contexto
+        'total_comensales': total_comensales,
+        'mesas_reservadas': mesas_reservadas,
         'capacidad_total': capacidad_total,
-        'porcentaje_ocupacion': porcentaje_ocupacion,  # Pasar porcentaje de ocupación al contexto
-        'weather_info': weather_info  # Pasar la información del clima
+        'porcentaje_ocupacion': porcentaje_ocupacion,
+        'weather_info': weather_info
     })
-    
-    
+
+@login_required
 def add_reservation(request):
     if request.method == 'POST':
         form = ReservationForm(request.POST)
@@ -97,26 +96,16 @@ def add_reservation(request):
             reservation.user = request.user
             reservation.save()
             messages.success(request, 'Reserva añadida con éxito.')
-            # Redirige al usuario a la página desde la cual se realizó la solicitud
             return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
         else:
             messages.error(request, 'Hubo un error al añadir la reserva. Por favor, revisa el formulario.')
-            # En caso de error, redirige también a la misma página
             return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
     else:
         form = ReservationForm()
 
     return render(request, 'add_reservation.html', {'form': form})
 
-
-def get_next_saturday():
-    today = localdate()
-    days_ahead = 5 - today.weekday()  # 5 es sábado (0 es lunes)
-    if days_ahead < 0:  # Si ya pasó el sábado, vamos al siguiente
-        days_ahead += 7
-    next_saturday = today + timedelta(days=days_ahead)
-    return next_saturday
-
+@login_required
 def all_reservations_view(request):
     query = request.GET.get('q', None)
     today = localdate()
@@ -145,7 +134,7 @@ def all_reservations_view(request):
 
     # Calcular el total de comensales y contar el número de reservas (mesas reservadas) para la fecha más reciente
     total_comensales = Reservation.objects.filter(date=latest_date).aggregate(Sum('guests'))['guests__sum'] or 0
-    mesas_reservadas = Reservation.objects.filter(date=latest_date).count()  # Contar el número de reservas
+    mesas_reservadas = Reservation.objects.filter(date=latest_date).count()
 
     # Calcular el porcentaje de ocupación
     capacidad_total = 55
@@ -165,11 +154,10 @@ def all_reservations_view(request):
         'porcentaje_ocupacion': porcentaje_ocupacion,
     })
 
-
-# Vista para editar la reserva
+@login_required
 def edit_reservation(request, pk):
     reservation = get_object_or_404(Reservation, pk=pk)
-    form = ReservationForm(instance=reservation)  # Define 'form' aquí por defecto
+    form = ReservationForm(instance=reservation)
     if request.method == 'POST':
         form = ReservationForm(request.POST, instance=reservation)
         if form.is_valid():
@@ -177,18 +165,14 @@ def edit_reservation(request, pk):
             return redirect('all_reservations')
     return render(request, 'edit_reservation.html', {'form': form, 'reservation': reservation})
 
-
-# Vista para eliminar reserva
+@login_required
 def delete_reservation(request, pk):
     reservation = get_object_or_404(Reservation, pk=pk)
     if request.method == 'POST':
         reservation.delete()
         return redirect('all_reservations')
-    return render(request, 'delete_reservation.html', {'reservation': reservation})    
+    return render(request, 'delete_reservation.html', {'reservation': reservation})
 
-
-
-# Vista de la API del tiempo
 def get_weather_data(latitude, longitude):
     base_url = 'https://api.open-meteo.com/v1/forecast'
     params = {
@@ -202,16 +186,13 @@ def get_weather_data(latitude, longitude):
     weather_data = response.json()
     
     if response.status_code == 200:
-        # Extraer los datos meteorológicos diarios
         daily_data = weather_data.get('daily', {})
         week_data = []
         
-        # Iterar sobre los datos diarios para extraer toda la semana
         for i in range(len(daily_data['time'])):
             date_str = daily_data['time'][i]
             date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-            
-            # Mapeo de código del clima a iconos y descripción
+
             weather_code = daily_data['weathercode'][i]
             if weather_code in [1, 2]:
                 weather_desc = 'Soleado'
@@ -219,18 +200,12 @@ def get_weather_data(latitude, longitude):
             elif weather_code in [3]:
                 weather_desc = 'Parcialmente Nublado'
                 weather_icon = '⛅'
-            elif weather_code in [45, 48, 51, 53, 55]:
-                weather_desc = 'Niebla'
-                weather_icon = '🌫️'
-            elif weather_code in [61, 63, 65, 80, 81, 82]:
-                weather_desc = 'Lluvioso'
-                weather_icon = '🌧️'
             else:
                 weather_desc = 'Variable'
                 weather_icon = '🌤️'
             
             week_data.append({
-                'day_name': date_obj.strftime('%A'),  # Nombre del día de la semana en español
+                'day_name': date_obj.strftime('%A'),
                 'temperature_max': daily_data['temperature_2m_max'][i],
                 'temperature_min': daily_data['temperature_2m_min'][i],
                 'weather_desc': weather_desc,
@@ -241,10 +216,9 @@ def get_weather_data(latitude, longitude):
     else:
         return None
 
-
 @require_GET
+@login_required
 def get_reservations(request):
-    # Filtrar y agrupar las reservas por fecha, sumando el número de comensales
     saturday_reservations = Reservation.objects.filter(date__week_day=7).values('date').annotate(total_guests=Sum('guests'))
 
     events = []
@@ -257,18 +231,18 @@ def get_reservations(request):
 
     return JsonResponse(events, safe=False)
 
+@login_required
 def get_reservations_for_date(request):
     date_str = request.GET.get('date')
     if date_str:
         try:
-            # Intenta parsear la fecha, esto ayudará a capturar errores de formato.
             date = datetime.strptime(date_str, '%Y-%m-%d').date()
             reservations = Reservation.objects.filter(date=date)
 
             reservation_list = []
             for reservation in reservations:
                 reservation_list.append({
-                    'id': reservation.id,  # Asegúrate de devolver el ID para las acciones de editar/eliminar
+                    'id': reservation.id,
                     'name': reservation.name,
                     'phone': reservation.phone,
                     'guests': reservation.guests,
