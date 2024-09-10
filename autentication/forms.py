@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import CustomUser, Reservation
+from .models import CustomUser, Reservation, Camarero  # Importamos el modelo Camarero
 from django.forms.widgets import DateInput
 from django.core.exceptions import ValidationError
 from datetime import datetime
@@ -19,6 +19,17 @@ class CustomUserCreationForm(UserCreationForm):
         }
 
 class ReservationForm(forms.ModelForm):
+    camarero = forms.ModelChoiceField(
+        queryset=Camarero.objects.all(),  # Lista de camareros disponibles
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'required': 'required',
+            'placeholder': 'Seleccione un camarero',
+            'id': 'camarero'
+        }),
+        label='Camarero'
+    )
+    
     date = forms.DateField(
         widget=DateInput(attrs={
             'type': 'date',
@@ -56,13 +67,14 @@ class ReservationForm(forms.ModelForm):
 
     class Meta:
         model = Reservation
-        fields = ['name', 'phone', 'guests', 'date', 'notes']  # Añadir 'notes' a los campos
+        fields = ['name', 'phone', 'guests', 'date', 'notes', 'camarero']  # Añadir el campo camarero
         labels = {
             'name': 'Nombre',
             'phone': 'Teléfono',
             'guests': 'Comensales',
             'date': 'Fecha',
-            'notes': 'Notas'  # Etiqueta para el campo 'notes'
+            'notes': 'Notas',
+            'camarero': 'Camarero'  # Etiqueta para el campo camarero
         }
         widgets = {
             'name': forms.TextInput(attrs={
@@ -80,11 +92,10 @@ class ReservationForm(forms.ModelForm):
                 'autocomplete': 'off',  # Desactiva autocompletado si es necesario
                 'id': 'guests'
             }),
-            'notes': forms.Textarea(attrs={  # Añadir el widget para 'notes'
+            'notes': forms.Textarea(attrs={  # Widget para 'notes'
                 'class': 'form-control',
                 'placeholder': 'Añadir notas adicionales...',
                 'rows': 3,  # Opcional: establecer la altura del área de texto
                 'id': 'notes'
             })
         }
-

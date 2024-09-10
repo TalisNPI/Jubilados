@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Seleccionar Camarero{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Seleccionar Camarero</h2>
+    
+    {% if messages %}
+    <div class="alert alert-warning">
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <form method="POST">
+        {% csrf_token %}
+        <div class="camarero-list">
+            {% for camarero in camareros %}
+                <label class="camarero-item" for="camarero-{{ camarero.id }}">
+                    <input type="radio" id="camarero-{{ camarero.id }}" name="camarero_id" value="{{ camarero.id }}">
+                    <img src="{{ camarero.avatar.url }}" alt="{{ camarero.nombre }}" class="avatar">
+                    <span>{{ camarero.nombre }}</span>
+                </label>
+            {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Seleccionar</button>
+    </form>
+</div>
+
+<style>
+    .camarero-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    .camarero-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    .camarero-item:hover {
+        background-color: #f0f0f0;
+    }
+    .avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin-bottom: 10px;
+    }
+    .camarero-item input[type="radio"] {
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}

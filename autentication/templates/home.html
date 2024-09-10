@@ -181,8 +181,43 @@
         </div>
     </div>
 
+    <!-- Modal para seleccionar camarero -->
+    <div id="selectCamareroModal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Seleccionar Camarero</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form method="POST" action="{% url 'select_camarero' %}">
+                        {% csrf_token %}
+                        <div class="camarero-list">
+                            {% for camarero in camareros %}
+                                <div class="camarero-item">
+                                    <img src="{{ camarero.avatar.url }}" alt="{{ camarero.nombre }}'s avatar" class="small-avatar">
+                                    <p>{{ camarero.nombre }}</p>
+                                    <button type="submit" name="camarero_id" value="{{ camarero.id }}" class="btn btn-primary">Seleccionar</button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Auto-mostrar el modal de selección de camarero si no hay uno seleccionado
+            var selectedCamarero = "{{ selected_camarero }}";
+            if (!selectedCamarero) {
+                var camareroModal = new bootstrap.Modal(document.getElementById('selectCamareroModal'));
+                camareroModal.show();
+            }
+
             // Auto-mostrar el modal de mensajes si hay uno
             var messageModal = document.getElementById('messageModal');
             if (messageModal) {

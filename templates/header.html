@@ -13,8 +13,23 @@
         </div>
         {% if user.is_authenticated %}
         <div class="user-info">
-            <img src="{{ user.avatar.url }}" alt="{{ user.username }}'s avatar" class="user-avatar">
-            <p>Hola, {{ user.username }}!</p>
+            {% if selected_camarero %}
+                <!-- Mostrar datos del camarero seleccionado -->
+                {% if selected_camarero.avatar %}
+                    <img src="{{ selected_camarero.avatar.url }}" alt="{{ selected_camarero.nombre }}'s avatar" class="user-avatar">
+                {% else %}
+                    <img src="{% static 'img/default-avatar.png' %}" alt="Avatar por defecto" class="user-avatar">
+                {% endif %}
+                <p>Hola, {{ selected_camarero.nombre }}!</p>
+            {% else %}
+                <!-- Mostrar datos del usuario por defecto -->
+                {% if user.avatar %}
+                    <img src="{{ user.avatar.url }}" alt="{{ user.username }}'s avatar" class="user-avatar">
+                {% else %}
+                    <img src="{% static 'img/default-avatar.png' %}" alt="Avatar por defecto" class="user-avatar">
+                {% endif %}
+                <p>Hola, {{ user.username }}!</p>
+            {% endif %}
         </div>
         {% endif %}
     </div>

@@ -13,4 +13,5 @@ urlpatterns = [
     path('purchases/', include('purchases.urls')),
     path('get_reservations/', views.get_reservations, name='get_reservations'),  
     path('get_reservations_for_date/', views.get_reservations_for_date, name='get_reservations_for_date'),
+    path('select_camarero/', views.select_camarero, name='select_camarero'),
 ]
